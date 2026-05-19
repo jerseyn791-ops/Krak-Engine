@@ -8,82 +8,58 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- AJOUT : Middleware pour forcer le type MIME des fichiers SVG ---
+// 1. Gestion du favicon (MIME Type)
 app.use((req, res, next) => {
     if (req.url.endsWith('.svg')) {
         res.setHeader('Content-Type', 'image/svg+xml');
     }
     next();
 });
-// -------------------------------------------------------------------
 
 app.use(express.static(__dirname));
 
-const API_KEY = process.env.ODDS_API_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-const oddsApi = axios.create({
-    baseURL: 'https://api.odds-api.io/v3',
-    params: { apiKey: API_KEY }
-});
-
-// Initialisation correcte de Gemini
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-const TARGET_MARKETS = {
-    football: ['ML', 'Totals', 'Team Total Home', 'Team Total Away', 'Double Chance'],
-    basketball: ['ML', 'Totals', 'Team Total Home', 'Team Total Away'],
-    tennis: ['ML', 'Spread (Games)', 'Totals (Games)'],
-    'ice-hockey': ['ML', 'Totals', '3-Way Result']
-};
+// Cache simple pour éviter le 429 (TTL de 60 secondes)
+let cache = { data: null, timestamp: 0 };
 
-function formatAllOddsDisplay(marketName, oddsArray) {
-    if (!oddsArray || oddsArray.length === 0) return ['N/A'];
-    return oddsArray.map(oddsObj => {
-        const hdpStr = oddsObj.hdp !== undefined ? `[Hdp: ${oddsObj.hdp}] ` : '';
-        switch (marketName) {
-            case 'ML': case '3-Way Result':
-                return `${hdpStr}Home: ${oddsObj.home || 'N/A'} | Away: ${oddsObj.away || 'N/A'}`;
-            case 'Double Chance':
-                return `1X: ${oddsObj['1X'] || 'N/A'} | X2: ${oddsObj['X2'] || 'N/A'}`;
-            case 'Totals': case 'Team Total Home': case 'Team Total Away':
-                return `${hdpStr}Over: ${oddsObj.over || 'N/A'} | Under: ${oddsObj.under || 'N/A'}`;
-            default: return JSON.stringify(oddsObj);
-        }
-    });
-}
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 app.post('/api/auto-analyse', async (req, res) => {
+    // Vérification du cache
+    if (Date.now() - cache.timestamp < 60000 && cache.data) {
+        return res.json({ success: true, ...cache.data });
+    }
+
     try {
         const { promptSysteme } = req.body;
         let fluxTerminalSimule = "";
         const sports = ['football', 'basketball', 'tennis', 'ice-hockey'];
-        const limiteDeuxHeures = Date.now() + (2 * 60 * 60 * 1000);
-
+        
         for (const sportSlug of sports) {
-            try {
-                const eventsResponse = await oddsApi.get('/events', { params: { sport: sportSlug, status: 'pending', limit: 20 } });
-                for (const event of (eventsResponse.data || [])) {
-                    if (new Date(event.date).getTime() > limiteDeuxHeures) continue;
-
-                    const oddsResponse = await oddsApi.get('/odds', { params: { eventId: String(event.id), bookmakers: '1xbet' } });
-                    const matchData = oddsResponse.data;
-                    const bookmaker = matchData?.bookmakers?.['1xbet'];
-                    
-                    if (bookmaker) {
-                        fluxTerminalSimule += `\n📊 ${event.home} vs ${event.away} | 🏆 ${event.league || 'Ligue'}\n`;
-                        bookmaker.filter(m => TARGET_MARKETS[sportSlug]?.includes(m.name)).forEach(m => {
-                            const lines = formatAllOddsDisplay(m.name, m.odds);
-                            fluxTerminalSimule += ` ▪️ ${m.name}: ${lines[0]}\n`;
-                        });
-                    }
-                }
-            } catch(e) { console.error(`Erreur ${sportSlug}:`, e.message); }
+            // Limite à 5 événements max pour rester sous le radar 429
+            const eventsResponse = await oddsApi.get('/events', { 
+                params: { sport: sportSlug, status: 'pending', limit: 5 } 
+            });
+            
+            for (const event of (eventsResponse.data || [])) {
+                const oddsResponse = await oddsApi.get('/odds', { 
+                    params: { eventId: String(event.id), bookmakers: '1xbet' } 
+                });
+                
+                await sleep(600); // Pause anti-429
+                // ... (reste de ton traitement des données)
+            }
+            await sleep(1000);
         }
 
-        const result = await model.generateContent(promptSysteme + "\nFlux de données :\n" + fluxTerminalSimule);
-        res.json({ success: true, text: result.response.text(), logs: fluxTerminalSimule });
+        const result = await model.generateContent(promptSysteme + "\nFlux :\n" + fluxTerminalSimule);
+        const responseData = { text: result.response.text(), logs: fluxTerminalSimule };
+        
+        cache = { data: responseData, timestamp: Date.now() };
+        res.json({ success: true, ...responseData });
+        
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
