@@ -7,6 +7,16 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// --- AJOUT : Middleware pour forcer le type MIME des fichiers SVG ---
+app.use((req, res, next) => {
+    if (req.url.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+    }
+    next();
+});
+// -------------------------------------------------------------------
+
 app.use(express.static(__dirname));
 
 const API_KEY = process.env.ODDS_API_KEY;
