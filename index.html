@@ -2,304 +2,40 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KRAK ENGINE v3 - Mode Automatique</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #2563eb;
-            --accent-success: #10b981;
-            --accent-error: #ef4444;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; }
-        
-        header {
-            text-align: center;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--card-bg);
-            margin-bottom: 20px;
-        }
-
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-
-        .card {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        h2 { margin-top: 0; font-size: 1.2rem; border-bottom: 1px solid #334155; padding-bottom: 10px; }
-        
-        .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.9rem; }
-        input, select, textarea {
-            width: 100%; padding: 10px; background-color: var(--bg-color);
-            border: 1px solid #334155; border-radius: 6px; color: var(--text-main);
-            box-sizing: border-box;
-        }
-
-        textarea { font-family: monospace; font-size: 0.85rem; resize: none; background-color: #020617;}
-
-        button {
-            width: 100%; padding: 12px; border: none; border-radius: 6px;
-            font-weight: bold; cursor: pointer; font-size: 1rem;
-            transition: background 0.2s;
-        }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background-color: var(--accent); color: white; }
-        .btn-primary:hover { background-color: #1d4ed8; }
-        .btn-success { background-color: var(--accent-success); color: white; }
-        .btn-success:hover { background-color: #059669; }
-        .btn-error { background-color: var(--accent-error); color: white; }
-        .btn-error:hover { background-color: #dc2626; }
-
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat-box { background-color: var(--bg-color); padding: 12px; border-radius: 6px; text-align: center; border: 1px solid #334155; }
-        .stat-box .val { font-size: 1.25rem; font-weight: bold; margin-top: 5px; }
-
-        .coupon-box {
-            background-color: #0f172a; border: 2px dashed #f59e0b;
-            padding: 15px; border-radius: 8px; margin-top: 15px;
-            white-space: pre-wrap; font-family: monospace; font-size: 0.95rem; line-height: 1.5;
-        }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9rem; }
-        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #334155; }
-        th { color: var(--text-muted); }
-
-        .badge { padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; }
-        .badge-win { background-color: var(--accent-success); }
-        .badge-loss { background-color: var(--accent-error); }
-        
-        .loading-status { color: #f59e0b; text-align: center; font-weight: bold; display: none; margin: 15px 0; }
-    </style>
+    <title>KRAK ENGINE v3</title>
+    <style>body { background: #0f172a; color: white; padding: 20px; font-family: sans-serif; }</style>
 </head>
 <body>
+    <h1>KRAK ENGINE v3</h1>
+    <button id="btn" onclick="lancerAnalyse()">⚡ LANCER L'ANALYSE</button>
+    <div id="resultat" style="margin-top: 20px; white-space: pre-wrap;"></div>
 
-<div class="container">
-    <header>
-        <h1>🚀 KRAK ENGINE v3 (Full Auto)</h1>
-        <p>Extraction Automatique Directe 1xBet - Fenêtre 2 Heures & Analyse Stratégique</p>
-    </header>
+    <script>
+        async function lancerAnalyse() {
+            const btn = document.getElementById('btn');
+            const resDiv = document.getElementById('resultat');
+            btn.disabled = true;
+            resDiv.innerText = "Analyse en cours...";
 
-    <div class="grid">
-        <div class="card">
-            <h2>⚙️ 1. Contrôle de la Campagne (Montante)</h2>
-            <div class="stats">
-                <div class="stat-box"><label>Capital</label><div id="ui-cap" class="val">10000 F</div></div>
-                <div class="stat-box"><label>Objectif</label><div id="ui-target" class="val">30000 F</div></div>
-                <div class="stat-box"><label>Progression</label><div id="ui-prog" class="val">33.3%</div></div>
-            </div>
+            try {
+                const response = await fetch('/api/auto-analyse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ promptSysteme: "Analyse ces matchs et fais un coupon." })
+                });
 
-            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                <div class="form-group">
-                    <label>Capital Courant (FCFA)</label>
-                    <input type="number" id="cfg-cap" value="10000">
-                </div>
-                <div class="form-group">
-                    <label>Multiplicateur Cible</label>
-                    <select id="cfg-mult">
-                        <option value="2">x2 (Objectif Court)</option>
-                        <option value="3" selected>x3 (Standard)</option>
-                        <option value="4">x4 (Agressif)</option>
-                        <option value="5">x5 (Expert)</option>
-                    </select>
-                </div>
-            </div>
-            <button class="btn-primary" onclick="initSystem()" style="margin-bottom: 25px;">Initialiser / Reset la Campagne</button>
-
-            <h2>📡 2. Terminal d'Analyse Instantané</h2>
-            <button id="btn-submit" class="btn-success" onclick="runAutoScanAndAnalysis()" style="font-size: 1.1rem; padding: 16px;">⚡ LIRE LES LIGNES ET CRÉER LE COUPON (2H)</button>
-            <div id="loader" class="loading-status">⏳ Analyse des flux 1xBet et calcul mathématique des probabilités en cours...</div>
-
-            <div class="form-group" style="margin-top: 20px;">
-                <label>Logs bruts interceptés (Lecture seule) :</label>
-                <textarea id="raw-input" rows="8" readonly placeholder="Les données du scan temps réel s'afficheront ici..."></textarea>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>🎟️ Coupon Recommandé par l'Algorithme</h2>
-            <div id="no-coupon" style="color: var(--text-muted); text-align: center; padding: 60px 0;">
-                Clique sur le bouton d'analyse automatique pour générer le coupon.
-            </div>
-
-            <div id="coupon-display" style="display: none;">
-                <div id="coupon-content" class="coupon-box"></div>
-
-                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
-                    <button class="btn-success" onclick="validateCoupon(true)">✅ GAGNÉ (Étape Validée)</button>
-                    <button class="btn-error" onclick="validateCoupon(false)">❌ PERDU (Ajuster la Mise)</button>
-                </div>
-            </div>
-
-            <h2 style="margin-top: 30px;">📋 Historique de la Session</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>N°</th>
-                        <th>Mise</th>
-                        <th>Cote</th>
-                        <th>Résultat</th>
-                        <th>Nouveau Capital</th>
-                    </tr>
-                </thead>
-                <tbody id="history-rows">
-                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Aucun pari enregistré pour le moment.</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<script>
-    let state = { capital: 10000, target: 30000, history: [], lastGenerated: null };
-
-    function initSystem() {
-        const cap = parseFloat(document.getElementById('cfg-cap').value) || 10000;
-        const mult = parseFloat(document.getElementById('cfg-mult').value) || 3;
-        state.capital = cap;
-        state.target = cap * mult;
-        state.history = [];
-        state.lastGenerated = null;
-        document.getElementById('coupon-display').style.display = 'none';
-        document.getElementById('no-coupon').style.display = 'block';
-        document.getElementById('raw-input').value = "";
-        updateUI();
-    }
-
-    function updateUI() {
-        document.getElementById('ui-cap').innerText = `${Math.round(state.capital)} F`;
-        document.getElementById('ui-target').innerText = `${Math.round(state.target)} F`;
-        document.getElementById('ui-prog').innerText = `${((state.capital / state.target) * 100).toFixed(1)}%`;
-
-        const tbody = document.getElementById('history-rows');
-        if(state.history.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Aucun pari enregistré.</td></tr>`;
-            return;
-        }
-        tbody.innerHTML = state.history.map((h, idx) => `
-            <tr>
-                <td>${state.history.length - idx}</td>
-                <td>${h.mise} F</td>
-                <td>${h.cote.toFixed(3)}</td>
-                <td><span class="badge ${h.win ? 'badge-win' : 'badge-loss'}">${h.win ? 'GAGNÉ' : 'PERDU'}</span></td>
-                <td><strong>${h.nextCap} F</strong></td>
-            </tr>
-        `).join('');
-    }
-
-    async function runAutoScanAndAnalysis() {
-        const btn = document.getElementById('btn-submit');
-        const loader = document.getElementById('loader');
-        const noCoupon = document.getElementById('no-coupon');
-        const couponDisplay = document.getElementById('coupon-display');
-        const couponContent = document.getElementById('coupon-content');
-        const logArea = document.getElementById('raw-input');
-
-        btn.disabled = true;
-        loader.style.display = 'block';
-        noCoupon.style.display = 'none';
-        couponDisplay.style.display = 'none';
-        logArea.value = "Connexion aux API de 1xBet... Tri sélectif des matchs à court terme...";
-
-        const progressionActuelle = ((state.capital / state.target) * 100).toFixed(1);
-
-        const promptSysteme = `
-Rôle : Moteur d'analyse statistique et de réduction des risques KRAK ENGINE (Gestion de montante en Afrique de l'Ouest, FCFA).
-Configuration : Capital actuel: ${state.capital} FCFA, Cible de session: ${state.target} FCFA, Progression: ${progressionActuelle}%.
-
-Objectif principal : Bâtir un coupon combiné unique de deux sélections maximum, d'une fiabilité absolue, pour valider sereinement l'étape de montante.
-Critères de filtrage stricts :
-1. Cotes individuelles cibles comprises rigoureusement entre 1.25 et 1.45 maximum. Cote globale finale recherchée entre 1.70 et 2.10.
-2. SÉCURITÉ CONTRE LE BLOCAGE DE COMBINÉS : Évite à tout prix d'associer deux marchés de nature identique (ex: deux "Team Total Over" individuels sur du basket de ligues mineures) car 1xBet refuse souvent ces validations en combiné. Diversifie les choix en mixant intelligemment (ex: Un total over global sur un match + Une double chance football, ou Un marché corners + Un over points global).
-3. VÉRIFICATION DES DONNÉES : Si le flux de données fourni ne présente aucun événement pertinent à très court terme ou si les lignes de cotes paraissent risquées, ne produis pas le coupon standard et affiche exclusivement : "⚠️ Aucune opportunité hautement sécurisée n'a été détectée dans ce flux pour le moment. Veuillez réimporter un nouveau flux d'ici 2 à 3 minutes."
-
-Gabarit Strict de Réponse à restituer (Affiche ce bloc textuel propre directement) :
-🎟️ Coupon Recommandé par l'Algorithme
-
-📍 Sélection 1 : [Nom Équipe Domicile] vs [Nom Équipe Extérieur]
-🏆 Ligue : [Insère précisément la compétition ou le championnat extrait du flux]
-Type : [Indique le marché précis avec son seuil d'alternative, ex: Totals Over 2.5 ou Double Chance 1X]
-➡️ [Cote de la ligne]
-
-📍 Sélection 2 : [Nom Équipe Domicile] vs [Nom Équipe Extérieur]
-🏆 Ligue : [Insère précisément la compétition ou le championnat extrait du flux]
-Type : [Indique le marché précis]
-➡️ [Cote de la ligne]
-
-Cote Totale : [Calcul mathématique exact : Cote 1 x Cote 2]
-Mise Conseillée : [Calcul d'exposition représentant 15% du capital soit : Math.round(${state.capital} * 0.15)] FCFA
-Gain Potentiel : [Mise Conseillée x Cote Totale] FCFA
-Analyse Flash : [Une phrase concise et percutante motivant la robustesse statistique de ce combiné]
-`;
-
-        try {
-            const response = await fetch('https://krak-engine.onrender.com/api/auto-analyse', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ promptSysteme })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                logArea.value = data.logs || "Aucun log extrait.";
-                const textResult = data.text;
-
-                let coteTrouvee = textResult.match(/Cote Totale\s*\*?\s*:\s*\*?\s*(\d+\.\d+)/i);
-                let miseTrouvee = textResult.match(/Mise Conseillée\s*\*?\s*:\s*\*?\s*(\d+)/i);
-
-                let parsedCote = coteTrouvee ? parseFloat(coteTrouvee[1]) : 1.85;
-                let parsedMise = miseTrouvee ? parseInt(miseTrouvee[1]) : Math.round(state.capital * 0.15);
-
-                state.lastGenerated = { mise: parsedMise, cote: parsedCote };
-                couponContent.innerText = textResult;
-                couponDisplay.style.display = 'block';
-            } else {
-                throw new Error(data.error);
+                const data = await response.json();
+                if (data.success) {
+                    resDiv.innerText = data.text;
+                } else {
+                    resDiv.innerText = "Erreur: " + data.error;
+                }
+            } catch (err) {
+                resDiv.innerText = "Erreur de communication.";
+            } finally {
+                btn.disabled = false;
             }
-        } catch (error) {
-            console.error(error);
-            alert("Échec de la communication réseau avec le serveur. Assure-toi que 'node server.js' tourne.");
-            noCoupon.style.display = 'block';
-        } finally {
-            btn.disabled = false;
-            loader.style.display = 'none';
         }
-    }
-
-    function validateCoupon(isWin) {
-        if(!state.lastGenerated) return;
-        const { mise, cote } = state.lastGenerated;
-        
-        state.capital = isWin ? (state.capital - mise) + (mise * cote) : state.capital - mise;
-
-        state.history.unshift({ mise, cote, win: isWin, nextCap: Math.round(state.capital) });
-        document.getElementById('coupon-display').style.display = 'none';
-        document.getElementById('no-coupon').style.display = 'block';
-        updateUI();
-
-        if(state.capital >= state.target) {
-            alert("👑 CAMPION ! L'objectif final fixé pour ta montante a été validé avec succès !");
-        }
-    }
-</script>
+    </script>
 </body>
 </html>
